@@ -1,9 +1,6 @@
 package com.example.appkotlin
 
-import com.example.appkotlin.payload.AuthorDto
-import com.example.appkotlin.payload.BookDto
-import com.example.appkotlin.payload.CategoryDto
-import com.example.appkotlin.payload.Response
+import com.example.appkotlin.payload.*
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 
@@ -21,31 +18,29 @@ class CategoryService(
 ) : BaseService<CategoryDto, ResponseEntity<Response>> {
 
     override fun create(dto: CategoryDto): ResponseEntity<Response> {
-        val parentCategory = categoryRepository.findById(dto.parentCategory).orElse(null)
 
+        val parentCategory = categoryRepository.findById(dto.parentCategory).orElse(null)
         val save = categoryRepository.save(Category(dto.name, parentCategory))
         return ResponseEntity.ok(dto.toDto(save)?.let { Response("Add category", 200, it) })
     }
 
     override fun getById(id: Long): ResponseEntity<Response> {
-        val category = categoryRepository.findById(id).orElse(null)
+        return ResponseEntity.ok(
+            Response(
+                "get by id",
+                200,
+                categoryRepository.findById(id).orElseThrow { throw CategoryFoundException("this id : $id not found") }
+            )
+        )
 
-        return if (category == null) {
-            ResponseEntity.ok(Response("Not found", 404))
-        } else {
-            ResponseEntity.ok(Response("get by id", 200, category))
-        }
     }
 
     override fun delete(id: Long): ResponseEntity<Response> {
-        val category = categoryRepository.findById(id).orElse(null)
+        categoryRepository.findById(id).orElseThrow { throw CategoryFoundException("this id : $id not found") }
 
-        return if (category == null) {
-            ResponseEntity.ok(Response("Not found", 404))
-        } else {
-            categoryRepository.deleteById(id)
-            ResponseEntity.ok(Response("Successfully delete", 200))
-        }
+        categoryRepository.deleteById(id)
+        return ResponseEntity.ok(Response("Successfully delete", 200))
+
     }
 
     override fun update(id: Long, dto: CategoryDto): ResponseEntity<Response> {
@@ -119,63 +114,59 @@ class BookService(
         val categories: MutableList<Category> = mutableListOf()
 
         dto.categoryIds.forEach {
-            val findById = categoryRepository.findById(it)
-            if (findById.isPresent) {
-                categories.add(findById.get())
-            }
+            categories.add(
+                categoryRepository.findById(it)
+                    .orElseThrow { throw CategoryFoundException("This $it id category not found") }
+            )
         }
 
-        val au = authorRepository.findById(dto.authorId).orElse(null)
+        val au = authorRepository.findById(dto.authorId)
+            .orElseThrow { throw AuthorNotFoundException("This ${dto.authorId} not found") }
 
-        bookRepository.save(Book(dto.name, categories, au))
+        val save = bookRepository.save(Book(dto.name, categories, au))
         return ResponseEntity.ok(
             Response(
                 "add book",
                 200,
+                BookResponse.toResponse(save)
             )
         )
 
     }
 
     override fun getById(id: Long): ResponseEntity<Response> {
-        val book = bookRepository.findById(id).orElse(null)
+        val book = bookRepository.findById(id).orElseThrow { throw BookNotFoundException("$id book not fouund") }
+        return ResponseEntity.ok(Response("get by id", 200, BookResponse.toResponse(book)))
 
-        return if (book == null) {
-            ResponseEntity.ok(Response("Not found", 404))
-        } else {
-            ResponseEntity.ok(Response("get by id", 200, book))
-        }
     }
 
     override fun update(id: Long, dto: BookDto): ResponseEntity<Response> {
         val categories: MutableList<Category> = mutableListOf()
 
         dto.categoryIds.forEach {
-            val findById = categoryRepository.findById(it)
-            if (findById.isPresent) {
-                categories.add(findById.get())
-            }
+            categories.add(
+                categoryRepository.findById(it)
+                    .orElseThrow { throw CategoryFoundException("This $it id category not found") }
+            )
         }
 
-        val au = authorRepository.findById(dto.authorId).orElse(null)
+        val au = authorRepository.findById(dto.authorId)
+            .orElseThrow { throw AuthorNotFoundException("This ${dto.authorId} not found") }
 
-        bookRepository.save(Book(dto.name, categories, au, id))
+        val save = bookRepository.save(Book(dto.name, categories, au, id))
         return ResponseEntity.ok(
             Response(
                 "add book",
                 200,
+                BookResponse.toResponse(save)
             )
         )
     }
 
     override fun delete(id: Long): ResponseEntity<Response> {
-        val book = bookRepository.findById(id).orElse(null)
+        bookRepository.findById(id).orElseThrow { throw BookNotFoundException("$id not foubd book") }
+        bookRepository.deleteById(id)
+        return ResponseEntity.ok(Response("get by id", 200))
 
-        return if (book == null) {
-            ResponseEntity.ok(Response("Not found", 404))
-        } else {
-            bookRepository.deleteById(id)
-            ResponseEntity.ok(Response("get by id", 200, book))
-        }
     }
 }
