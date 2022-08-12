@@ -1,0 +1,12 @@
+server:
+  port: 9090
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/kotlin_practice
+    password: 12345
+    username: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
